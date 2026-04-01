@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crypto / Stock Tracker</title>
+  <style>
+    * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #0f172a, #111827, #1e293b);
+  color: #f8fafc;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1300px;
+  margin: auto;
+}
+
+.topbar {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.topbar h1 {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+}
+
+.topbar p {
+  color: #cbd5e1;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 25px;
+  align-items: end;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+  color: #cbd5e1;
+}
+
+input,
+select,
+button {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+}
+
+input,
+select {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+button {
+  background: #38bdf8;
+  color: #0f172a;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s ease;
+}
+
+button:hover {
+  background: #0ea5e9;
+  transform: translateY(-2px);
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+.left-panel,
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.price-card h2,
+.chart-card h2,
+.card h2 {
+  margin-bottom: 15px;
+}
+
+.asset-info {
+  line-height: 1.9;
+  color: #e2e8f0;
+  font-size: 1rem;
+}
+
+.asset-info .main-price {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #38bdf8;
+}
+
+.chart-card {
+  min-height: 420px;
+}
+
+.chart-header {
+  margin-bottom: 10px;
+}
+
+.watchlist-controls,
+.alert-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+#watchlist,
+#alertsList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#watchlist li,
+#alertsList li {
+  background: rgba(255,255,255,0.06);
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.small-btn {
+  background: #ef4444;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.small-btn:hover {
+  background: #dc2626;
+}
+
+.load-btn {
+  background: #22c55e;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.load-btn:hover {
+  background: #16a34a;
+}
+
+.note {
+  color: #facc15;
+  font-size: 0.92rem;
+  margin-top: 8px;
+}
+
+.positive {
+  color: #4ade80;
+}
+
+.negative {
+  color: #f87171;
+}
+
+@media (max-width: 1024px) {
+  .controls {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar h1 {
+    font-size: 1.8rem;
+  }
+
+  .watchlist-controls,
+  .alert-form {
+    flex-direction: column;
+  }
+}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <h1>Market Tracker</h1>
+      <p>Track crypto and stock prices, charts, watchlist, and alerts</p>
+    </header>
+
+    <section class="controls card">
+      <div class="input-group">
+        <label for="assetType">Asset Type</label>
+        <select id="assetType">
+          <option value="crypto">Crypto</option>
+          <option value="stock">Stock</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="symbolInput">Search Symbol / Name</label>
+        <input type="text" id="symbolInput" placeholder="e.g. bitcoin, ethereum, AAPL, TSLA" />
+      </div>
+
+      <div class="input-group">
+        <label for="rangeSelect">Chart Range</label>
+        <select id="rangeSelect">
+          <option value="1">1 Day</option>
+          <option value="7">7 Days</option>
+          <option value="30" selected>30 Days</option>
+          <option value="90">90 Days</option>
+          <option value="365">1 Year</option>
+        </select>
+      </div>
+
+      <button id="searchBtn">Track Asset</button>
+    </section>
+
+    <section class="dashboard">
+      <div class="left-panel">
+        <div class="card price-card">
+          <h2>Asset Details</h2>
+          <div id="assetInfo" class="asset-info">
+            <p>Select an asset to view details.</p>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="chart-header">
+            <h2>Historical Chart</h2>
+          </div>
+          <canvas id="priceChart"></canvas>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="card">
+          <h2>Watchlist</h2>
+          <div class="watchlist-controls">
+            <button id="addWatchlistBtn">Add Current Asset</button>
+          </div>
+          <ul id="watchlist"></ul>
+        </div>
+
+        <div class="card">
+          <h2>Set Alert</h2>
+          <div class="alert-form">
+            <input type="number" id="alertPrice" placeholder="Enter target price" />
+            <select id="alertCondition">
+              <option value="above">Above</option>
+              <option value="below">Below</option>
+            </select>
+            <button id="setAlertBtn">Set Alert</button>
+          </div>
+          <ul id="alertsList"></ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const assetType = document.getElementById("assetType");
+const symbolInput = document.getElementById("symbolInput");
+const rangeSelect = document.getElementById("rangeSelect");
+const searchBtn = document.getElementById("searchBtn");
+const assetInfo = document.getElementById("assetInfo");
+const addWatchlistBtn = document.getElementById("addWatchlistBtn");
+const watchlistEl = document.getElementById("watchlist");
+const alertPrice = document.getElementById("alertPrice");
+const alertCondition = document.getElementById("alertCondition");
+const setAlertBtn = document.getElementById("setAlertBtn");
+const alertsList = document.getElementById("alertsList");
+
+let currentAsset = null;
+let currentChart = null;
+
+const STOCK_API_KEY = "YOUR_ALPHA_VANTAGE_API_KEY";
+
+function getWatchlist() {
+  return JSON.parse(localStorage.getItem("watchlist")) || [];
+}
+
+function saveWatchlist(list) {
+  localStorage.setItem("watchlist", JSON.stringify(list));
+}
+
+function getAlerts() {
+  return JSON.parse(localStorage.getItem("alerts")) || [];
+}
+
+function saveAlerts(alerts) {
+  localStorage.setItem("alerts", JSON.stringify(alerts));
+}
+
+function formatCurrency(value) {
+  if (value === null || value === undefined || isNaN(value)) return "N/A";
+  return "$" + Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function renderWatchlist() {
+  const watchlist = getWatchlist();
+  watchlistEl.innerHTML = "";
+
+  if (watchlist.length === 0) {
+    watchlistEl.innerHTML = "<li>No watchlist items added yet.</li>";
+    return;
+  }
+
+  watchlist.forEach((item, index) => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <div>
+        <strong>${item.symbol}</strong><br>
+        <small>${item.type}</small>
+      </div>
+      <div>
+        <button class="load-btn" onclick="loadFromWatchlist(${index})">Load</button>
+        <button class="small-btn" onclick="removeWatchlist(${index})">Remove</button>
+      </div>
+    `;
+    watchlistEl.appendChild(li);
+  });
+}
+
+function renderAlerts() {
+  const alerts = getAlerts();
+  alertsList.innerHTML = "";
+
+  if (alerts.length === 0) {
+    alertsList.innerHTML = "<li>No alerts set yet.</li>";
+    return;
+  }
+
+  alerts.forEach((alert, index) => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <div>
+        <strong>${alert.symbol}</strong> - ${alert.condition} ${alert.targetPrice}
+        <br>
+        <small>${alert.type}</small>
+      </div>
+      <button class="small-btn" onclick="removeAlert(${index})">Delete</button>
+    `;
+    alertsList.appendChild(li);
+  });
+}
+
+window.removeWatchlist = function(index) {
+  const watchlist = getWatchlist();
+  watchlist.splice(index, 1);
+  saveWatchlist(watchlist);
+  renderWatchlist();
+};
+
+window.loadFromWatchlist = function(index) {
+  const watchlist = getWatchlist();
+  const item = watchlist[index];
+  assetType.value = item.type;
+  symbolInput.value = item.symbol;
+  searchAsset();
+};
+
+window.removeAlert = function(index) {
+  const alerts = getAlerts();
+  alerts.splice(index, 1);
+  saveAlerts(alerts);
+  renderAlerts();
+};
+
+addWatchlistBtn.addEventListener("click", () => {
+  if (!currentAsset) {
+    alert("Please track an asset first.");
+    return;
+  }
+
+  const watchlist = getWatchlist();
+  const exists = watchlist.some(
+    item => item.symbol.toLowerCase() === currentAsset.symbol.toLowerCase() &&
+            item.type === currentAsset.type
+  );
+
+  if (exists) {
+    alert("This asset is already in the watchlist.");
+    return;
+  }
+
+  watchlist.push({
+    symbol: currentAsset.symbol,
+    type: currentAsset.type
+  });
+
+  saveWatchlist(watchlist);
+  renderWatchlist();
+});
+
+setAlertBtn.addEventListener("click", () => {
+  if (!currentAsset) {
+    alert("Track an asset first.");
+    return;
+  }
+
+  const target = parseFloat(alertPrice.value);
+  if (isNaN(target) || target <= 0) {
+    alert("Please enter a valid target price.");
+    return;
+  }
+
+  const alerts = getAlerts();
+  alerts.push({
+    symbol: currentAsset.symbol,
+    type: currentAsset.type,
+    targetPrice: target,
+    condition: alertCondition.value
+  });
+
+  saveAlerts(alerts);
+  renderAlerts();
+  alertPrice.value = "";
+});
+
+searchBtn.addEventListener("click", searchAsset);
+
+async function searchAsset() {
+  const type = assetType.value;
+  const query = symbolInput.value.trim();
+
+  if (!query) {
+    alert("Please enter a symbol or name.");
+    return;
+  }
+
+  try {
+    if (type === "crypto") {
+      await loadCrypto(query);
+    } else {
+      await loadStock(query);
+    }
+  } catch (error) {
+    console.error(error);
+    assetInfo.innerHTML = `<p>Unable to fetch data. Please try again.</p>`;
+  }
+}
+
+async function loadCrypto(query) {
+  const searchRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(query)}`);
+  const searchData = await searchRes.json();
+
+  if (!searchData.coins || searchData.coins.length === 0) {
+    assetInfo.innerHTML = "<p>Crypto asset not found.</p>";
+    return;
+  }
+
+  const coin = searchData.coins[0];
+  const coinId = coin.id;
+
+  const marketRes = await fetch(
+    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinId}`
+  );
+  const marketData = await marketRes.json();
+
+  if (!marketData.length) {
+    assetInfo.innerHTML = "<p>Unable to load crypto market data.</p>";
+    return;
+  }
+
+  const data = marketData[0];
+  currentAsset = {
+    symbol: data.symbol.toUpperCase(),
+    type: "crypto",
+    price: data.current_price
+  };
+
+  const priceChange = data.price_change_percentage_24h || 0;
+  const changeClass = priceChange >= 0 ? "positive" : "negative";
+
+  assetInfo.innerHTML = `
+    <p><strong>Name:</strong> ${data.name}</p>
+    <p><strong>Symbol:</strong> ${data.symbol.toUpperCase()}</p>
+    <p class="main-price">${formatCurrency(data.current_price)}</p>
+    <p><strong>Market Cap:</strong> ${formatCurrency(data.market_cap)}</p>
+    <p><strong>24h High:</strong> ${formatCurrency(data.high_24h)}</p>
+    <p><strong>24h Low:</strong> ${formatCurrency(data.low_24h)}</p>
+    <p><strong>24h Change:</strong> <span class="${changeClass}">${priceChange.toFixed(2)}%</span></p>
+  `;
+
+  await loadCryptoChart(coinId, rangeSelect.value);
+  checkAlerts(currentAsset.symbol, currentAsset.type, currentAsset.price);
+}
+
+async function loadCryptoChart(coinId, days) {
+  const chartRes = await fetch(
+    `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`
+  );
+  const chartData = await chartRes.json();
+
+  const labels = chartData.prices.map(item => {
+    const date = new Date(item[0]);
+    return Number(days) <= 1 ? date.toLocaleTimeString() : date.toLocaleDateString();
+  });
+
+  const prices = chartData.prices.map(item => item[1]);
+
+  renderChart(labels, prices, `${coinId.toUpperCase()} Price`);
+}
+
+async function loadStock(symbol) {
+  if (STOCK_API_KEY === "YOUR_ALPHA_VANTAGE_API_KEY") {
+    assetInfo.innerHTML = `
+      <p><strong>Stock mode selected.</strong></p>
+      <p>Please add your Alpha Vantage API key inside <code>script.js</code>.</p>
+      <p class="note">After adding the key, search for symbols like AAPL, TSLA, MSFT.</p>
+    `;
+    destroyChart();
+    return;
+  }
+
+  const upperSymbol = symbol.toUpperCase();
+
+  const quoteRes = await fetch(
+    `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${upperSymbol}&apikey=${STOCK_API_KEY}`
+  );
+  const quoteData = await quoteRes.json();
+
+  const quote = quoteData["Global Quote"];
+
+  if (!quote || !quote["05. price"]) {
+    assetInfo.innerHTML = "<p>Stock asset not found or API limit reached.</p>";
+    destroyChart();
+    return;
+  }
+
+  const currentPrice = parseFloat(quote["05. price"]);
+  const changePercent = parseFloat(quote["10. change percent"]);
+
+  currentAsset = {
+    symbol: upperSymbol,
+    type: "stock",
+    price: currentPrice
+  };
+
+  const changeClass = changePercent >= 0 ? "positive" : "negative";
+
+  assetInfo.innerHTML = `
+    <p><strong>Symbol:</strong> ${upperSymbol}</p>
+    <p class="main-price">${formatCurrency(currentPrice)}</p>
+    <p><strong>Open:</strong> ${formatCurrency(quote["02. open"])}</p>
+    <p><strong>High:</strong> ${formatCurrency(quote["03. high"])}</p>
+    <p><strong>Low:</strong> ${formatCurrency(quote["04. low"])}</p>
+    <p><strong>Previous Close:</strong> ${formatCurrency(quote["08. previous close"])}</p>
+    <p><strong>Change:</strong> <span class="${changeClass}">${quote["10. change percent"]}</span></p>
+  `;
+
+  await loadStockChart(upperSymbol);
+  checkAlerts(currentAsset.symbol, currentAsset.type, currentAsset.price);
+}
+
+async function loadStockChart(symbol) {
+  const chartRes = await fetch(
+    `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${STOCK_API_KEY}`
+  );
+  const chartData = await chartRes.json();
+
+  const timeSeries = chartData["Time Series (Daily)"];
+  if (!timeSeries) {
+    destroyChart();
+    return;
+  }
+
+  const dates = Object.keys(timeSeries).slice(0, 30).reverse();
+  const prices = dates.map(date => parseFloat(timeSeries[date]["4. close"]));
+
+  renderChart(dates, prices, `${symbol} Price`);
+}
+
+function renderChart(labels, data, label) {
+  const ctx = document.getElementById("priceChart").getContext("2d");
+
+  if (currentChart) {
+    currentChart.destroy();
+  }
+
+  currentChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label,
+        data,
+        borderColor: "#38bdf8",
+        backgroundColor: "rgba(56, 189, 248, 0.2)",
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: "#ffffff"
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: "#cbd5e1" },
+          grid: { color: "rgba(255,255,255,0.08)" }
+        },
+        y: {
+          ticks: { color: "#cbd5e1" },
+          grid: { color: "rgba(255,255,255,0.08)" }
+        }
+      }
+    }
+  });
+}
+
+function destroyChart() {
+  if (currentChart) {
+    currentChart.destroy();
+    currentChart = null;
+  }
+}
+
+function checkAlerts(symbol, type, currentPrice) {
+  const alerts = getAlerts();
+  const updatedAlerts = alerts.filter(alertItem => {
+    if (
+      alertItem.symbol.toLowerCase() === symbol.toLowerCase() &&
+      alertItem.type === type
+    ) {
+      const hitAbove = alertItem.condition === "above" && currentPrice > alertItem.targetPrice;
+      const hitBelow = alertItem.condition === "below" && currentPrice < alertItem.targetPrice;
+
+      if (hitAbove || hitBelow) {
+        alert(`Alert: ${symbol} is now ${alertItem.condition} ${alertItem.targetPrice}`);
+        return false;
+      }
+    }
+    return true;
+  });
+
+  saveAlerts(updatedAlerts);
+  renderAlerts();
+}
+
+rangeSelect.addEventListener("change", () => {
+  if (!currentAsset) return;
+  searchAsset();
+});
+
+renderWatchlist();
+renderAlerts();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- 
+Market Tracker
+Track crypto and stock prices, charts, watchlist, and alerts
+
+Asset Details
+Name: Bitcoin
+Symbol: BTC
+Price: $xxxxx
+Market Cap: $xxxxxx
+24h High: $xxxxx
+24h Low: $xxxxx
+24h Change: +x.xx%
+
+Historical Chart
+(Line chart shown here)
+
+Watchlist
+BTC   [Load] [Remove]
+
+Set Alert
+Target Price: 70000
+Condition: Above
+[Set Alert] 
+
+crypto
+
+Asset Details
+Name: Bitcoin
+Symbol: BTC
+$84,250.32
+Market Cap: $1,670,000,000,000
+24h High: $85,400.10
+24h Low: $82,900.44
+24h Change: +2.15%
+
+
+stock
+Stock mode selected.
+Please add your Alpha Vantage API key inside script.js.
+After adding the key, search for symbols like AAPL, TSLA, MSFT.
+
+-->
